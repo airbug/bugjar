@@ -13,7 +13,6 @@ var buildProject = buildbug.buildProject;
 var buildProperties = buildbug.buildProperties;
 var buildTarget = buildbug.buildTarget;
 var enableModule = buildbug.enableModule;
-var parallel = buildbug.parallel;
 var series = buildbug.series;
 var targetTask = buildbug.targetTask;
 
@@ -22,6 +21,7 @@ var targetTask = buildbug.targetTask;
 // Enable Modules
 //-------------------------------------------------------------------------------
 
+//var bugjar = enableModule("bugjar");
 var bugpack = enableModule("bugpack");
 var core = enableModule("core");
 var nodejs = enableModule("nodejs");
@@ -41,7 +41,7 @@ buildProperties({
 });
 
 buildProperties({
-    bugjarJson: {
+    bugJarJson: {
         name: buildProject.getProperties().name,
         version: buildProject.getProperties().version,
         dependencies: [
@@ -89,31 +89,51 @@ buildTarget("local").buildFlow(
         // old source files are removed. We should figure out a better way of doing that.
 
         targetTask("clean"),
-        parallel([
-            series([
-                targetTask("createNodePackage", {
-                    properties: {
-                        packageJson: buildProject.getProperties().packageJson,
-                        sourcePaths: buildProject.getProperties().sourcePaths
-                    }
-                }),
-                targetTask("generateBugPackRegistry", {
-                    init: function(task, buildProject, properties) {
-                        var nodePackage = nodejs.findNodePackage(buildProject.getProperties().name);
-                        task.updateProperties({
-                            sourceRoot: nodePackage.getBuildPath()
-                        });
-                    }
-                }),
-                targetTask("packNodePackage", {
-                    properties: {
-                        packageName: buildProject.getProperties().name
-                    }
-                })
-            ])/*,
-            series([
-                targetTask("create")
-            ])*/
-        ])
+
+        //TODO BRN: We have to get this library working before we can begin depending upon it for building bugjars
+        /* targetTask("createBugJar", {
+            properties: {
+                bugJarJson: buildProject.getProperties().bugJarJson
+            }
+        }),
+        targetTask("fillBugJar", {
+            properties: {
+                name: buildProject.getProperties().name,
+                version: buildProject.getProperties().version,
+                sourcePaths: buildProject.getProperties().sourcePaths
+            }
+        }),
+        targetTask("resolveBugJarDependencies", {
+            properties: {
+                name: buildProject.getProperties().name,
+                version: buildProject.getProperties().version
+            }
+        })*/
+
+        targetTask("createNodePackage", {
+            /*init: function(task, buildProject, properties) {
+                var bugJar = nodejs.findNodePackage(buildProject.getProperties().name);
+                task.updateProperties({
+                    sourceRoot: nodePackage.getBuildPath()
+                });
+            },*/
+            properties: {
+                packageJson: buildProject.getProperties().packageJson,
+                sourcePaths: buildProject.getProperties().sourcePaths
+            }
+        }),
+        targetTask("generateBugPackRegistry", {
+            init: function(task, buildProject, properties) {
+                var nodePackage = nodejs.findNodePackage(buildProject.getProperties().name);
+                task.updateProperties({
+                    sourceRoot: nodePackage.getBuildPath()
+                });
+            }
+        }),
+        targetTask("packNodePackage", {
+            properties: {
+                packageName: buildProject.getProperties().name
+            }
+        })
     ])
 ).makeDefault();

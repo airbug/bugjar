@@ -14,16 +14,19 @@ var bugpack = require('bugpack');
 //-------------------------------------------------------------------------------
 
 var ApiContext = bugpack.require('ApiContext');
+var BugBoil = bugpack.require('BugBoil');
 var BugFlow = bugpack.require('BugFlow');
 var BugFs = bugpack.require('BugFs');
 var BugJar = bugpack.require('BugJar');
 var Map = bugpack.require('Map');
+var Path = bugpack.require('Path');
 
 
 //-------------------------------------------------------------------------------
 // Simplify References
 //-------------------------------------------------------------------------------
 
+var $foreachSeries = BugBoil.$foreachSeries;
 var $series = BugFlow.$series;
 var $task = BugFlow.$task;
 
@@ -176,11 +179,29 @@ BugJarApi.emptyJarSync = function(params) {
 
 /**
  * Fills a jar with the specified folders and files contained in the paths
- * @param params
+ * @param {Object} params
+ * @param {?function(Error)} callback
  */
-BugJarApi.fillJarSync = function(params) {
+BugJarApi.fillJar = function(params, callback) {
     BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
+    var bugJar = BugJarApi.resolveBugJarFromParams(params);
+    var jarPath = BugJarApi.generateJarPath(bugJar);
+    var sourcePaths = params.sourcePaths;
+    if (sourcePaths) {
+        $foreachSeries(sourcePaths, function(boil, sourcePath) {
+            BugFs.copyDirectoryContents(sourcePath, jarPath, true, Path.SyncMode.MERGE_REPLACE, function(error) {
+                boil.bubble(error);
+            });
+        }).execute(function(error) {
+            if (callback) {
+                callback(error);
+            }
+        });
+    } else {
+        if (callback) {
+            callback(new Error("Could not find sourcePaths parameter"));
+        }
+    }
 };
 
 /**
