@@ -37,6 +37,10 @@ buildProperties({
     sourcePaths: [
         "./projects/bugjar/js/src",
         "../bugjs/projects/bugjs/js/src"
+    ],
+    testPaths: [
+        "./projects/bugjar/js/test",
+        "../bugjs/projects/bugjs/js/test"
     ]
 });
 
@@ -119,20 +123,42 @@ buildTarget("local").buildFlow(
             },*/
             properties: {
                 packageJson: buildProject.getProperties().packageJson,
-                sourcePaths: buildProject.getProperties().sourcePaths
+                sourcePaths: buildProject.getProperties().sourcePaths,
+                testPaths: buildProject.getProperties().testPaths
             }
         }),
         targetTask("generateBugPackRegistry", {
             init: function(task, buildProject, properties) {
-                var nodePackage = nodejs.findNodePackage(buildProject.getProperties().name);
+                var nodePackage = nodejs.findNodePackage(buildProject.getProperties().name,
+                    buildProject.getProperties().version);
                 task.updateProperties({
                     sourceRoot: nodePackage.getBuildPath()
                 });
             }
         }),
+        targetTask("runBugUnitTests", {
+            //TODO BRN: Use 'npm test' to run tests. Need to embed
+        }),
         targetTask("packNodePackage", {
             properties: {
                 packageName: buildProject.getProperties().name
+            }
+        }),
+        targetTask("s3EnsureBucket", {
+            properties: {
+                bucket: "node_modules"
+            }
+        }),
+        targetTask("s3PutObject", {
+            init: function(task, buildProject, properties) {
+                var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperties().name,
+                    buildProject.getProperties().version);
+                task.updateProperties({
+                    file: packedNodePackage.getFilePath()
+                });
+            },
+            properties: {
+                bucket: "node_modules"
             }
         })
     ])
