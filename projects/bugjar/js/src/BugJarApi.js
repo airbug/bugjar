@@ -188,9 +188,9 @@ BugJarApi.fillJar = function(params, callback) {
     var jarPath = BugJarApi.generateJarPath(bugJar);
     var sourcePaths = params.sourcePaths;
     if (sourcePaths) {
-        $foreachSeries(sourcePaths, function(boil, sourcePath) {
+        $foreachSeries(sourcePaths, function(flow, sourcePath) {
             BugFs.copyDirectoryContents(sourcePath, jarPath, true, Path.SyncMode.MERGE_REPLACE, function(error) {
-                boil.bubble(error);
+                flow.complete(error);
             });
         }).execute(function(error) {
             if (callback) {
