@@ -26,7 +26,7 @@ var Path = bugpack.require('Path');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $foreachSeries = BugBoil.$foreachSeries;
+var $forEachSeries = BugBoil.$forEachSeries;
 var $series = BugFlow.$series;
 var $task = BugFlow.$task;
 
@@ -188,7 +188,7 @@ BugJarApi.fillJar = function(params, callback) {
     var jarPath = BugJarApi.generateJarPath(bugJar);
     var sourcePaths = params.sourcePaths;
     if (sourcePaths) {
-        $foreachSeries(sourcePaths, function(flow, sourcePath) {
+        $forEachSeries(sourcePaths, function(flow, sourcePath) {
             BugFs.copyDirectoryContents(sourcePath, jarPath, true, Path.SyncMode.MERGE_REPLACE, function(error) {
                 flow.complete(error);
             });
