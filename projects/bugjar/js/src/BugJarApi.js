@@ -1,10 +1,15 @@
 //-------------------------------------------------------------------------------
-// Requires
+// Annotations
 //-------------------------------------------------------------------------------
 
 //@Export('BugJarApi')
 
 //@Require('BugJar')
+
+
+//-------------------------------------------------------------------------------
+// Common Modules
+//-------------------------------------------------------------------------------
 
 var bugpack = require('bugpack');
 
@@ -14,7 +19,6 @@ var bugpack = require('bugpack');
 //-------------------------------------------------------------------------------
 
 var ApiContext = bugpack.require('ApiContext');
-var BugBoil = bugpack.require('BugBoil');
 var BugFlow = bugpack.require('BugFlow');
 var BugFs = bugpack.require('BugFs');
 var BugJar = bugpack.require('BugJar');
@@ -26,9 +30,9 @@ var Path = bugpack.require('Path');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $forEachSeries = BugBoil.$forEachSeries;
-var $series = BugFlow.$series;
-var $task = BugFlow.$task;
+var $forEachSeries  = BugFlow.$forEachSeries;
+var $series         = BugFlow.$series;
+var $task           = BugFlow.$task;
 
 
 //-------------------------------------------------------------------------------
