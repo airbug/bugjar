@@ -144,11 +144,6 @@ buildTarget("local").buildFlow(
                 packageName: buildProject.getProperties().name
             }
         }),
-        targetTask("s3EnsureBucket", {
-            properties: {
-                bucket: "node_modules"
-            }
-        }),
         targetTask("s3PutObject", {
             init: function(task, buildProject, properties) {
                 var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperties().name,
