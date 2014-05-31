@@ -2,331 +2,308 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Export('BugJarApi')
+//@Export('bugjar.BugJarApi')
 
-//@Require('BugJar')
-
-
-//-------------------------------------------------------------------------------
-// Common Modules
-//-------------------------------------------------------------------------------
-
-var bugpack = require('bugpack');
-
-
-//-------------------------------------------------------------------------------
-// BugPack
-//-------------------------------------------------------------------------------
-
-var ApiContext = bugpack.require('ApiContext');
-var BugFlow = bugpack.require('BugFlow');
-var BugFs = bugpack.require('BugFs');
-var BugJar = bugpack.require('BugJar');
-var Map = bugpack.require('Map');
-var Path = bugpack.require('Path');
+//@Require('Class')
+//@Require('Exception')
+//@Require('Map')
+//@Require('Obj')
+//@Require('Proxy')
+//@Require('bugflow.BugFlow')
+//@Require('bugfs.BugFs')
+//@Require('bugfs.Path')
+//@Require('bugjar.BugJarContext')
 
 
 //-------------------------------------------------------------------------------
-// Simplify References
+// Context
 //-------------------------------------------------------------------------------
 
-var $forEachSeries  = BugFlow.$forEachSeries;
-var $series         = BugFlow.$series;
-var $task           = BugFlow.$task;
+require('bugpack').context("*", function(bugpack) {
+
+    //-------------------------------------------------------------------------------
+    // BugPack
+    //-------------------------------------------------------------------------------
+
+    var Class           = bugpack.require('Class');
+    var Exception       = bugpack.require('Exception');
+    var Map             = bugpack.require('Map');
+    var Obj             = bugpack.require('Obj');
+    var Proxy           = bugpack.require('Proxy');
+    var BugFlow         = bugpack.require('bugflow.BugFlow');
+    var BugFs           = bugpack.require('bugfs.BugFs');
+    var Path            = bugpack.require('bugfs.Path');
+    var BugJarContext   = bugpack.require('bugjar.BugJarContext');
 
 
-//-------------------------------------------------------------------------------
-// Declare Class
-//-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    // Simplify References
+    //-------------------------------------------------------------------------------
 
-var BugJarApi = {};
-
-
-//-------------------------------------------------------------------------------
-// Static Variables
-//-------------------------------------------------------------------------------
-
-/**
- * @private
- * @type {Map.<string, ApiContext>}
- */
-BugJarApi.apiContextMap = new Map();
-
-/**
- * @Private
- * @type {boolean}
- */
-BugJarApi.bootstrapped = false;
-
-/**
- * @private
- * @type {ApiContext}
- */
-BugJarApi.currentContext = null;
+    var $forEachSeries  = BugFlow.$forEachSeries;
+    var $if             = BugFlow.$if;
+    var $series         = BugFlow.$series;
+    var $task           = BugFlow.$task;
 
 
-//-------------------------------------------------------------------------------
-// Static Methods
-//-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    // Declare Class
+    //-------------------------------------------------------------------------------
 
-/**
- * @param {?string=} bootPath
- */
-BugJarApi.bootstrap = function(bootPath) {
-    bootPath = bootPath ? bootPath : (process.cwd() + "/.bugjar");
-    BugJarApi.bootstrapped = true;
-    BugJarApi.changeContext(bootPath);
-};
+    /**
+     * @class
+     * @extends {Obj}
+     */
+    var BugJarApi = Class.extend(Obj, {
 
-/**
- * @param {string} contextPath
- */
-BugJarApi.changeContext = function(contextPath) {
-    var apiContext = BugJarApi.apiContextMap.get(contextPath);
-    if (!apiContext) {
-        apiContext = new ApiContext(contextPath);
-        BugJarApi.apiContextMap.put(contextPath, apiContext);
-    }
-    BugJarApi.currentContext = apiContext;
-};
+        _name: "bugjar.BugJarApi",
 
 
-// BugJar Methods
-//-------------------------------------------------------------------------------
+        //-------------------------------------------------------------------------------
+        // Constructor
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @constructs
+         */
+        _constructor: function() {
+
+            this._super();
 
 
-/**
- * Creates a BugJar in the local .bugjar folder. If the jar already exists, it is not modified.
- * @param {Object} params
- * @param {?function(Error, BugJar)} callback
- */
-BugJarApi.createJar = function(params, callback) {
-    BugJarApi.ensureBootstrap();
-    var bugJar = BugJarApi.resolveBugJarFromParams(params);
-    var jarPath = BugJarApi.generateJarPath(bugJar);
-    var bugJarJsonFilePath = jarPath.joinPaths('bugjar.json');
+            //-------------------------------------------------------------------------------
+            // Private Properties
+            //-------------------------------------------------------------------------------
 
-    $series([
-        $task(function(flow) {
-            jarPath.createDirectory(function(error) {
-                flow.complete(error);
-            });
-        }),
-        $task(function(flow) {
-            bugJarJsonFilePath.createFile(function(error) {
-                flow.complete(error);
-            });
-        }),
-        $task(function(flow) {
-            bugJarJsonFilePath.writeFile(bugJar.generateBugJarJson(), function(error) {
-                flow.complete(error);
-            });
-        })
-    ]).execute(function(error) {
-        if (callback) {
-            if (!error) {
-                callback(undefined, bugJar);
-            } else {
-                callback(error);
+            /**
+             * @private
+             * @type {Map.<string, BugJarContext>}
+             */
+            this.contextMap         = new Map();
+
+            /**
+             * @Private
+             * @type {boolean}
+             */
+            this.bootstrapped       = false;
+
+            /**
+             * @private
+             * @type {BugJarContext}
+             */
+            this.currentContext     = null;
+        },
+
+
+        //-------------------------------------------------------------------------------
+        // Public Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {string=} homePath
+         */
+        bootstrap: function(homePath) {
+            homePath        = homePath ? homePath : process.env.HOME;
+            var bootPath    = homePath + "/.bugjar";
+            this.bootstrapped = true;
+            this.changeContext(bootPath);
+        },
+    
+        /**
+         * @param {string} contextPath
+         */
+        changeContext: function(contextPath) {
+            var bugJarContext = this.contextMap.get(contextPath);
+            if (!bugJarContext) {
+                bugJarContext = new BugJarContext(contextPath);
+                this.contextMap.put(contextPath, bugJarContext);
+            }
+            this.currentContext = bugJarContext;
+        },
+    
+    
+        // BugJar Methods
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @param {{
+         *      name: string,
+         *      version: string,
+         *      dependencies: Array.<string>,
+         *      meta: Object,
+         *      sources: Array.<(string | Path)>
+         * }} params
+         * @param {function(Throwable, BugJar=)} callback
+         */
+        createBugJar: function(params, callback) {
+            var _this               = this;
+            this.ensureBootstrap();
+            //TODO BRN: Generate a temp bugjar
+            //TODO BRN: Build a tarball of the temp bugjar
+        },
+
+        /**
+         * @param {{
+         *      name: string,
+         *      version: string,
+         *      dependencies: Array.<string>,
+         *      meta: Object,
+         *      sources: Array.<(string | Path)>
+         * }} params
+         * @return {BugJar}
+         */
+        createBugJarSync: function(params) {
+            this.ensureBootstrap();
+            //TODO BRN: Generate a temp bugjar
+            //TODO BRN: Build a tarball of the temp bugjar
+        },
+    
+        /**
+         * @param {string} name
+         * @param {string} version
+         * @param {function(Throwable, BugJar=)} callback
+         */
+        getBugJar: function(name, version, callback) {
+            this.ensureBootstrap();
+            this.currentContext.getBugJar(name, version, callback);
+        },
+
+        /**
+         * @param {string} name
+         * @param {string} version
+         * @return {BugJar}
+         */
+        getBugJarSync: function(name, version) {
+            this.ensureBootstrap();
+            return this.currentContext.getBugJarSync(name, version);
+        },
+
+        /**
+         * @param {string} name
+         * @param {string} version
+         * @param {function(Throwable, boolean=)} callback
+         */
+        hasBugJar: function(name, version, callback) {
+            this.currentContext.hasBugJar(name, version, callback);
+        },
+
+        /**
+         * @param {string} name
+         * @param {string} version
+         * @return {boolean}
+         */
+        hasBugJarSync: function(name, version) {
+            return this.currentContext.hasBugJarSync(name, version);
+        },
+
+        /**
+         * @param {{
+         *      jarPath: string,
+         *      options: {
+         *      }
+         * }} params
+         * @param {function(Throwable=)} callback
+         */
+        putBugJar: function(params, callback) {
+            this.ensureBootstrap();
+
+            //TODO BRN:
+        },
+
+        /**
+         * @param {{
+         *      jarPath: string,
+         *      options: {
+         *      }
+         * }} params
+         */
+        putBugJarSync: function(params) {
+            this.ensureBootstrap();
+            //TODO BRN:
+        },
+
+        /**
+         * @param {{
+         *      name: string,
+         *      version: string
+         * }} params
+         * @param {function(Throwable=)} callback
+         */
+        removeBugJar: function(params, callback) {
+            this.ensureBootstrap();
+            this.currentContext.removeBugJar(params.name, params.version, callback);
+        },
+
+        /**
+         * @param {{
+         *      name: string,
+         *      version: string
+         * }} params
+         */
+        removeBugJarSync: function(params) {
+            this.ensureBootstrap();
+            return this.currentContext.removeBugJarSync(params.name, params.version);
+        },
+
+    
+        //-------------------------------------------------------------------------------
+        // Private Methods
+        //-------------------------------------------------------------------------------
+    
+        /**
+         * @private
+         */
+        ensureBootstrap: function() {
+            if (!this.bootstrapped) {
+                this.bootstrap();
             }
         }
     });
-};
 
-/**
- * Creates a BugJar in the local .bugjar folder. If the jar already exists, it is not modified.
- * @param {Object} params
- * @return {BugJar}
- */
-BugJarApi.createJarSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    var bugJar = BugJarApi.resolveBugJarFromParams(params);
-    var jarPath = BugJarApi.generateJarPath(bugJar);
-    var bugJarJsonFilePath = jarPath.joinPaths('bugjar.json');
-    jarPath.createDirectorySync();
-    bugJarJsonFilePath.createFileSync();
-    bugJarJsonFilePath.writeFileSync(bugJar.generateBugJarJson());
-    return bugJar;
-};
 
-/**
- * Deletes a BugJar from the local .bugjar cache
- * @param {Object} params
- * @param {?function(Error)} callback
- */
-BugJarApi.deleteJar = function(params, callback) {
-    BugJarApi.ensureBootstrap();
-    var bugJar = BugJarApi.resolveBugJarFromParams(params);
-    var jarPath = BugJarApi.generateJarPath(bugJar);
-    jarPath.deleteDirectory(true, callback);
-};
+    //-------------------------------------------------------------------------------
+    // Private Static Properties
+    //-------------------------------------------------------------------------------
 
-/**
- * Deletes a BugJar from the local .bugjar cache
- * @param {Object} params
- */
-BugJarApi.deleteJarSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    var bugJar = BugJarApi.resolveBugJarFromParams(params);
-    var jarPath = BugJarApi.generateJarPath(bugJar);
-    jarPath.deleteDirectorySync(true);
-};
+    /**
+     * @static
+     * @private
+     * @type {BugJarApi}
+     */
+    BugJarApi.instance = null;
 
-/**
- * Removes all files and folders from the specified jar (except the bugjar.json file)
- * @param params
- */
-BugJarApi.emptyJarSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
 
-/**
- * Fills a jar with the specified folders and files contained in the paths
- * @param {Object} params
- * @param {?function(Error)} callback
- */
-BugJarApi.fillJar = function(params, callback) {
-    BugJarApi.ensureBootstrap();
-    var bugJar = BugJarApi.resolveBugJarFromParams(params);
-    var jarPath = BugJarApi.generateJarPath(bugJar);
-    var sourcePaths = params.sourcePaths;
-    if (sourcePaths) {
-        $forEachSeries(sourcePaths, function(flow, sourcePath) {
-            BugFs.copyDirectoryContents(sourcePath, jarPath, true, Path.SyncMode.MERGE_REPLACE, function(error) {
-                flow.complete(error);
-            });
-        }).execute(function(error) {
-            if (callback) {
-                callback(error);
-            }
-        });
-    } else {
-        if (callback) {
-            callback(new Error("Could not find sourcePaths parameter"));
+    //-------------------------------------------------------------------------------
+    // Static Methods
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @static
+     * @return {BugJarApi}
+     */
+    BugJarApi.getInstance = function() {
+        if (BugJarApi.instance === null) {
+            BugJarApi.instance = new BugJarApi();
         }
-    }
-};
-
-/**
- * @param {string} name
- * @param {string} version
- * @return {BugJar}
- */
-BugJarApi.getJar = function(name, version) {
-    BugJarApi.ensureBootstrap();
-    return this.currentContext.getJar(name, version);
-};
-
-/**
- * Accepts a jar name and version and generates a BugJar instance.
- * @param {string} name
- * @param {string} version
- */
-BugJarApi.generateJar = function(name, version) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Validate the name and version
-    var bugJar = BugJarApi.getJar(name, version);
-    if (!bugJar) {
-        bugJar = new BugJar(name, version);
-    }
-    return bugJar;
-};
-
-BugJarApi.openJarSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
+        return BugJarApi.instance;
+    };
 
 
-// Shelf Methods
-//-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    // Static Proxy
+    //-------------------------------------------------------------------------------
 
-/**
- * Creates a Shelf, the action is left up to the Shelf implementation
- * @param {Object} params
- * @return {Shelf}
- */
-BugJarApi.createShelfSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
-
-/**
- * Deletes a Shelf, the action is left up to the Shelf implementation
- * @param {Object} params
- */
-BugJarApi.deleteShelfSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
-
-/**
- * Get a BugJar from a Shelf repo
- */
-BugJarApi.getJarFromShelfSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
-
-/**
- * Puts a BugJar on a Shelf, if the jar already exists, it is replaced with the new one
- * @param {Object} params
- */
-BugJarApi.putJarOnShelfSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
-
-/**
- * Removes a BugJar from a Shelf
- * @param {Object} params
- */
-BugJarApi.removeJarFromShelfSync = function(params) {
-    BugJarApi.ensureBootstrap();
-    //TODO BRN: Implementation
-};
+    Proxy.proxy(BugJarApi, Proxy.method(BugJarApi.getInstance), [
+        "bootstrap",
+        "changeContext",
+        "createJar",
+        "createJarSync"
+    ]);
 
 
-//-------------------------------------------------------------------------------
-// Private Static Methods
-//-------------------------------------------------------------------------------
+    //-------------------------------------------------------------------------------
+    // Exports
+    //-------------------------------------------------------------------------------
 
-/**
- * @private
- */
-BugJarApi.ensureBootstrap = function() {
-    if (!BugJarApi.bootstrapped) {
-        BugJarApi.bootstrap();
-    }
-};
-
-/**
- * @private
- * @param {BugJar} bugJar
- * @return {Path}
- */
-BugJarApi.generateJarPath = function(bugJar) {
-    return BugJarApi.currentContext.getPath().joinPaths(bugJar.relativePath());
-};
-
-/**
- * @private
- * @param {Object} params
- * @return {BugJar}
- */
-BugJarApi.resolveBugJarFromParams = function(params) {
-    if (Class.doesExtend(params.bugJar, BugJar)) {
-        return params.bugJar;
-    } else if (params.name && params.version) {
-        return BugJarApi.generateJar(params.name, params.version);
-    }
-    throw new Error("Could not resolve BugJar with the params that were passed in");
-};
-
-
-//-------------------------------------------------------------------------------
-// Exports
-//-------------------------------------------------------------------------------
-
-bugpack.export(BugJarApi);
+    bugpack.export("bugjar.BugJarApi", BugJarApi);
+});

@@ -2,29 +2,42 @@
 // Requires
 //-------------------------------------------------------------------------------
 
-var buildbug = require("buildbug");
+var buildbug            = require("buildbug");
 
 
 //-------------------------------------------------------------------------------
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var buildProject = buildbug.buildProject;
-var buildProperties = buildbug.buildProperties;
-var buildTarget = buildbug.buildTarget;
-var enableModule = buildbug.enableModule;
-var series = buildbug.series;
-var targetTask = buildbug.targetTask;
+var buildProject        = buildbug.buildProject;
+var buildProperties     = buildbug.buildProperties;
+var buildTarget         = buildbug.buildTarget;
+var enableModule        = buildbug.enableModule;
+var parallel            = buildbug.parallel;
+var series              = buildbug.series;
+var targetTask          = buildbug.targetTask;
 
 
 //-------------------------------------------------------------------------------
 // Enable Modules
 //-------------------------------------------------------------------------------
 
-//var bugjar = enableModule("bugjar");
-var bugpack = enableModule("bugpack");
-var core = enableModule("core");
-var nodejs = enableModule("nodejs");
+var aws                 = enableModule("aws");
+var bugpack             = enableModule("bugpack");
+var bugunit             = enableModule('bugunit');
+var core                = enableModule("core");
+var nodejs              = enableModule("nodejs");
+
+
+//-------------------------------------------------------------------------------
+// Values
+//-------------------------------------------------------------------------------
+
+var name                = "bugjar";
+var version             = "0.0.1";
+var dependencies        = {
+    bugpack: "0.1.12"
+};
 
 
 //-------------------------------------------------------------------------------
@@ -32,42 +45,71 @@ var nodejs = enableModule("nodejs");
 //-------------------------------------------------------------------------------
 
 buildProperties({
-    name: "bugjar",
-    version: "0.0.1",
-    sourcePaths: [
-        "./projects/bugjar/js/src",
-        "../bugjs/projects/bugjs/js/src"
-    ],
-    testPaths: [
-        "./projects/bugjar/js/test",
-        "../bugjs/projects/bugjs/js/test"
-    ]
-});
-
-buildProperties({
-    bugJarJson: {
-        name: buildProject.getProperties().name,
-        version: buildProject.getProperties().version,
-        dependencies: [
-            {
-                name: "bugjs",
-                version: "0.0.1",
-                type: "bugjar"
+    node: {
+        packageJson: {
+            name: name,
+            version: version,
+            description: "bugjar is a JavaScript library that provides a jarring system for reusable JS libraries (think Java jars)",
+            main: "./scripts/bugjar-node-module.js",
+            bin: "bin/bugjar",
+            dependencies: dependencies,
+            author: "Brian Neisler <brian@airbug.com>",
+            repository: {
+                type: "git",
+                url: "https://github.com/airbug/bugjar.git"
             },
-            {
-                name: "aws-sdk",
-                version: "0.9.x",
-                type: "nodejs"
-            }
-        ]
-    },
-    packageJson: {
-        name: buildProject.getProperties().name,
-        version: buildProject.getProperties().version,
-        main: "./lib/bugjarapi_boot.js",
-        dependencies: {
-            "aws-sdk": "0.9.x",
-            bugpack: "git+ssh://git@github.com:airbug/bugpack.git#master"
+            bugs: {
+                url: "https://github.com/airbug/bugjar/issues"
+            },
+            licenses: [
+                {
+                    type : "MIT",
+                    url : "https://raw.githubusercontent.com/airbug/bugjar/master/LICENSE"
+                }
+            ]
+        },
+        sourcePaths: [
+            "../bugcore/projects/bugcore/js/src",
+            "../bugflow/projects/bugflow/js/src",
+            "../bugfs/projects/bugfs/js/src",
+            "../bugjs/projects/aws/js/src",
+            "../bugjs/projects/bugcli/js/src",
+            "../bugmeta/projects/bugmeta/js/src",
+            "../bugtrace/projects/bugtrace/js/src",
+            "./projects/bugjar/js/src"
+        ],
+        scriptPaths: [
+            "./projects/bugjar-node/js/scripts"
+        ],
+        readmePath: "./README.md",
+        unitTest: {
+            packageJson: {
+                name: name + "-test",
+                version: version,
+                main: "./scripts/bugjar-node-module.js",
+                dependencies: dependencies,
+                scripts: {
+                    test: "./scripts/bugunit-run.js"
+                }
+            },
+            sourcePaths: [
+                "../buganno/projects/buganno/js/src",
+                "../bugunit/projects/bugdouble/js/src",
+                "../bugunit/projects/bugunit/js/src"
+            ],
+            scriptPaths: [
+                "../buganno/projects/buganno/js/scripts",
+                "../bugunit/projects/bugunit/js/scripts"
+            ],
+            testPaths: [
+                "../bugcore/projects/bugcore/js/test",
+                "../bugflow/projects/bugflow/js/test",
+                "../bugfs/projects/bugfs/js/test",
+                "../bugjs/projects/bugcli/js/test",
+                "../bugmeta/projects/bugmeta/js/test",
+                "../bugtrace/projects/bugtrace/js/test",
+                "./projects/bugjar/js/test"
+            ]
         }
     }
 });
@@ -82,79 +124,199 @@ buildProperties({
 // Declare Flows
 //-------------------------------------------------------------------------------
 
+// Clean BuildTarget
+//-------------------------------------------------------------------------------
+
 buildTarget("clean").buildFlow(
     targetTask("clean")
 );
 
+
+// Local BuildTarget
+//-------------------------------------------------------------------------------
+
 buildTarget("local").buildFlow(
     series([
-
-        // TODO BRN: This "clean" task is temporary until we"re not modifying the build so much. This also ensures that
-        // old source files are removed. We should figure out a better way of doing that.
-
         targetTask("clean"),
-
-        //TODO BRN: We have to get this library working before we can begin depending upon it for building bugjars
-        /* targetTask("createBugJar", {
+        targetTask('createNodePackage', {
             properties: {
-                bugJarJson: buildProject.getProperties().bugJarJson
+                packageJson: buildProject.getProperty("node.packageJson"),
+                readmePath: buildProject.getProperty("node.readmePath"),
+                sourcePaths: buildProject.getProperty("node.sourcePaths").concat(
+                    buildProject.getProperty("node.unitTest.sourcePaths")
+                ),
+                scriptPaths: buildProject.getProperty("node.scriptPaths").concat(
+                    buildProject.getProperty("node.unitTest.scriptPaths")
+                ),
+                testPaths: buildProject.getProperty("node.unitTest.testPaths")
             }
         }),
-        targetTask("fillBugJar", {
-            properties: {
-                name: buildProject.getProperties().name,
-                version: buildProject.getProperties().version,
-                sourcePaths: buildProject.getProperties().sourcePaths
-            }
-        }),
-        targetTask("resolveBugJarDependencies", {
-            properties: {
-                name: buildProject.getProperties().name,
-                version: buildProject.getProperties().version
-            }
-        })*/
-
-        targetTask("createNodePackage", {
-            /*init: function(task, buildProject, properties) {
-                var bugJar = nodejs.findNodePackage(buildProject.getProperties().name);
-                task.updateProperties({
-                    sourceRoot: nodePackage.getBuildPath()
-                });
-            },*/
-            properties: {
-                packageJson: buildProject.getProperties().packageJson,
-                sourcePaths: buildProject.getProperties().sourcePaths,
-                testPaths: buildProject.getProperties().testPaths
-            }
-        }),
-        targetTask("generateBugPackRegistry", {
+        targetTask('generateBugPackRegistry', {
             init: function(task, buildProject, properties) {
-                var nodePackage = nodejs.findNodePackage(buildProject.getProperties().name,
-                    buildProject.getProperties().version);
+                var nodePackage = nodejs.findNodePackage(
+                    buildProject.getProperty("node.packageJson.name"),
+                    buildProject.getProperty("node.packageJson.version")
+                );
                 task.updateProperties({
                     sourceRoot: nodePackage.getBuildPath()
                 });
             }
         }),
-        targetTask("runBugUnitTests", {
-            //TODO BRN: Use 'npm test' to run tests. Need to embed
-        }),
-        targetTask("packNodePackage", {
+        targetTask('packNodePackage', {
             properties: {
-                packageName: buildProject.getProperties().name
+                packageName: "{{node.packageJson.name}}",
+                packageVersion: "{{node.packageJson.version}}"
             }
         }),
-        targetTask("s3PutObject", {
+        targetTask('startNodeModuleTests', {
             init: function(task, buildProject, properties) {
-                var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperties().name,
-                    buildProject.getProperties().version);
+                var packedNodePackage = nodejs.findPackedNodePackage(
+                    buildProject.getProperty("node.packageJson.name"),
+                    buildProject.getProperty("node.packageJson.version")
+                );
                 task.updateProperties({
-                    file: packedNodePackage.getFilePath()
+                    modulePath: packedNodePackage.getFilePath()
+                    //checkCoverage: true
+                });
+            }
+        }),
+        targetTask("s3PutFile", {
+            init: function(task, buildProject, properties) {
+                var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("node.packageJson.name"),
+                    buildProject.getProperty("node.packageJson.version"));
+                task.updateProperties({
+                    file: packedNodePackage.getFilePath(),
+                    options: {
+                        acl: 'public-read',
+                        encrypt: true
+                    }
                 });
             },
             properties: {
-                bucket: "node_modules"
+                bucket: "{{local-bucket}}"
             }
         })
     ])
 ).makeDefault();
+
+
+// Prod BuildTarget
+//-------------------------------------------------------------------------------
+
+buildTarget("prod").buildFlow(
+    series([
+
+        // TODO BRN: This "clean" task is temporary until we're not modifying the build so much. This also ensures that
+        // old source files are removed. We should figure out a better way of doing that.
+
+        targetTask("clean"),
+        parallel([
+            series([
+                targetTask("createNodePackage", {
+                    properties: {
+                        packageJson: buildProject.getProperty("node.packageJson"),
+                        sourcePaths: buildProject.getProperty("node.sourcePaths").concat(
+                            buildProject.getProperty("node.unitTest.sourcePaths")
+                        ),
+                        scriptPaths: buildProject.getProperty("node.scriptPaths").concat(
+                            buildProject.getProperty("node.unitTest.scriptPaths")
+                        ),
+                        testPaths: buildProject.getProperty("node.unitTest.testPaths"),
+                        binPaths: buildProject.getProperty("node.binPaths")
+                    }
+                }),
+                targetTask("generateBugPackRegistry", {
+                    init: function(task, buildProject, properties) {
+                        var nodePackage = nodejs.findNodePackage(
+                            buildProject.getProperty("node.packageJson.name"),
+                            buildProject.getProperty("node.packageJson.version")
+                        );
+                        task.updateProperties({
+                            sourceRoot: nodePackage.getBuildPath()
+                        });
+                    }
+                }),
+                targetTask("packNodePackage", {
+                    properties: {
+                        packageName: buildProject.getProperty("node.packageJson.name"),
+                        packageVersion: buildProject.getProperty("node.packageJson.version")
+                    }
+                }),
+                targetTask("startNodeModuleTests", {
+                    init: function(task, buildProject, properties) {
+                        var packedNodePackage = nodejs.findPackedNodePackage(
+                            buildProject.getProperty("node.packageJson.name"),
+                            buildProject.getProperty("node.packageJson.version")
+                        );
+                        task.updateProperties({
+                            modulePath: packedNodePackage.getFilePath(),
+                            checkCoverage: true
+                        });
+                    }
+                })
+            ]),
+
+            // Create production package
+
+            series([
+                targetTask("createNodePackage", {
+                    properties: {
+                        binPaths: buildProject.getProperty("node.binPaths"),
+                        packageJson: buildProject.getProperty("node.packageJson"),
+                        readmePath: buildProject.getProperty("node.readmePath"),
+                        sourcePaths: buildProject.getProperty("node.sourcePaths"),
+                        scriptPaths: buildProject.getProperty("node.scriptPaths")
+                    }
+                }),
+                targetTask("generateBugPackRegistry", {
+                    init: function(task, buildProject) {
+                        var nodePackage = nodejs.findNodePackage(
+                            buildProject.getProperty("node.packageJson.name"),
+                            buildProject.getProperty("node.packageJson.version")
+                        );
+                        task.updateProperties({
+                            sourceRoot: nodePackage.getBuildPath()
+                        });
+                    }
+                }),
+                targetTask('packNodePackage', {
+                    properties: {
+                        packageName: "{{node.packageJson.name}}",
+                        packageVersion: "{{node.packageJson.version}}"
+                    }
+                }),
+                targetTask("s3PutFile", {
+                    init: function(task, buildProject, properties) {
+                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("node.packageJson.name"),
+                            buildProject.getProperty("node.packageJson.version"));
+                        task.updateProperties({
+                            file: packedNodePackage.getFilePath(),
+                            options: {
+
+                                //TODO BRN: In order to protect this file we need to limit the access to this artifact and provide some sort of http auth access so that the artifacts are retrievable via npm install. This would need to be done in a server wrapper.
+
+                                acl: "public-read",
+                                encrypt: true
+                            }
+                        });
+                    },
+                    properties: {
+                        bucket: "{{public-bucket}}"
+                    }
+                }),
+                targetTask('npmConfigSet', {
+                    properties: {
+                        config: buildProject.getProperty("npmConfig")
+                    }
+                }),
+                targetTask('npmAddUser'),
+                targetTask('publishNodePackage', {
+                    properties: {
+                        packageName: "{{node.packageJson.name}}",
+                        packageVersion: "{{node.packageJson.version}}"
+                    }
+                })
+            ])
+        ])
+    ])
+);
