@@ -36,7 +36,7 @@ var nodejs              = enableModule("nodejs");
 var name                = "bugjar";
 var version             = "0.0.1";
 var dependencies        = {
-    bugpack: "0.1.12"
+    bugpack: "0.1.14"
 };
 
 
@@ -69,13 +69,11 @@ buildProperties({
             ]
         },
         sourcePaths: [
-            "../bugcore/projects/bugcore/js/src",
-            "../bugflow/projects/bugflow/js/src",
+            "../bugcore/libraries/bugcore/js/src",
             "../bugfs/projects/bugfs/js/src",
             "../bugjs/projects/aws/js/src",
             "../bugjs/projects/bugcli/js/src",
             "../bugmeta/projects/bugmeta/js/src",
-            "../bugtrace/projects/bugtrace/js/src",
             "./projects/bugjar/js/src"
         ],
         scriptPaths: [
@@ -102,12 +100,10 @@ buildProperties({
                 "../bugunit/projects/bugunit/js/scripts"
             ],
             testPaths: [
-                "../bugcore/projects/bugcore/js/test",
-                "../bugflow/projects/bugflow/js/test",
+                "../bugcore/libraries/bugcore/js/test",
                 "../bugfs/projects/bugfs/js/test",
                 "../bugjs/projects/bugcli/js/test",
                 "../bugmeta/projects/bugmeta/js/test",
-                "../bugtrace/projects/bugtrace/js/test",
                 "./projects/bugjar/js/test"
             ]
         }

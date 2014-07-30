@@ -8,7 +8,7 @@
 //@Require('Exception')
 //@Require('Map')
 //@Require('Obj')
-//@Require('bugflow.BugFlow')
+//@Require('Flows')
 //@Require('bugfs.BugFs')
 //@Require('bugjar.BugJar')
 
@@ -27,7 +27,7 @@ require('bugpack').context("*", function(bugpack) {
     var Exception       = bugpack.require('Exception');
     var Map             = bugpack.require('Map');
     var Obj             = bugpack.require('Obj');
-    var BugFlow         = bugpack.require('bugflow.BugFlow');
+    var Flows         = bugpack.require('Flows');
     var BugFs           = bugpack.require('bugfs.BugFs');
     var BugJar          = bugpack.require('bugjar.BugJar');
 
@@ -36,10 +36,10 @@ require('bugpack').context("*", function(bugpack) {
     // Simplify References
     //-------------------------------------------------------------------------------
 
-    var $forEachSeries  = BugFlow.$forEachSeries;
-    var $if             = BugFlow.$if;
-    var $series         = BugFlow.$series;
-    var $task           = BugFlow.$task;
+    var $forEachSeries  = Flows.$forEachSeries;
+    var $if             = Flows.$if;
+    var $series         = Flows.$series;
+    var $task           = Flows.$task;
 
 
     //-------------------------------------------------------------------------------

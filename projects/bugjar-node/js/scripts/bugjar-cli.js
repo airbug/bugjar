@@ -4,14 +4,14 @@
 
 require("bugpack").loadContext(module, function(error, bugpack) {
     if (!error) {
-        bugpack.loadExports(["bugflow.BugFlow", "bugjar.BugJarCli"], function(error) {
+        bugpack.loadExports(["Flows", "bugjar.BugJarCli"], function(error) {
             if (!error) {
 
                 //-------------------------------------------------------------------------------
                 // BugPack
                 //-------------------------------------------------------------------------------
 
-                var BugFlow         = bugpack.require('bugflow.BugFlow');
+                var Flows           = bugpack.require('Flows');
                 var BugJarCli       = bugpack.require('bugjar.BugJarCli');
 
 
@@ -19,8 +19,8 @@ require("bugpack").loadContext(module, function(error, bugpack) {
                 // Simplify References
                 //-------------------------------------------------------------------------------
 
-                var $series         = BugFlow.$series;
-                var $task           = BugFlow.$task;
+                var $series         = Flows.$series;
+                var $task           = Flows.$task;
 
 
                 //-------------------------------------------------------------------------------

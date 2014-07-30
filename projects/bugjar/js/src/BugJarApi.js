@@ -9,7 +9,7 @@
 //@Require('Map')
 //@Require('Obj')
 //@Require('Proxy')
-//@Require('bugflow.BugFlow')
+//@Require('Flows')
 //@Require('bugfs.BugFs')
 //@Require('bugfs.Path')
 //@Require('bugjar.BugJarContext')
@@ -30,7 +30,7 @@ require('bugpack').context("*", function(bugpack) {
     var Map             = bugpack.require('Map');
     var Obj             = bugpack.require('Obj');
     var Proxy           = bugpack.require('Proxy');
-    var BugFlow         = bugpack.require('bugflow.BugFlow');
+    var Flows         = bugpack.require('Flows');
     var BugFs           = bugpack.require('bugfs.BugFs');
     var Path            = bugpack.require('bugfs.Path');
     var BugJarContext   = bugpack.require('bugjar.BugJarContext');
@@ -40,10 +40,10 @@ require('bugpack').context("*", function(bugpack) {
     // Simplify References
     //-------------------------------------------------------------------------------
 
-    var $forEachSeries  = BugFlow.$forEachSeries;
-    var $if             = BugFlow.$if;
-    var $series         = BugFlow.$series;
-    var $task           = BugFlow.$task;
+    var $forEachSeries  = Flows.$forEachSeries;
+    var $if             = Flows.$if;
+    var $series         = Flows.$series;
+    var $task           = Flows.$task;
 
 
     //-------------------------------------------------------------------------------

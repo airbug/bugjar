@@ -7,7 +7,7 @@
 //@Require('Class')
 //@Require('Exception')
 //@Require('bugcli.BugCli')
-//@Require('bugflow.BugFlow')
+//@Require('Flows')
 //@Require('bugjar.BugJarApi')
 
 
@@ -31,7 +31,7 @@ require('bugpack').context("*", function(bugpack) {
     var Class               = bugpack.require('Class');
     var Exception           = bugpack.require('Exception');
     var BugCli              = bugpack.require('bugcli.BugCli');
-    var BugFlow             = bugpack.require('bugflow.BugFlow');
+    var Flows             = bugpack.require('Flows');
     var BugJarApi           = bugpack.require('bugjar.BugJarApi');
 
 
@@ -39,8 +39,8 @@ require('bugpack').context("*", function(bugpack) {
     // Simplify References
     //-------------------------------------------------------------------------------
 
-    var $series             = BugFlow.$series;
-    var $task               = BugFlow.$task;
+    var $series             = Flows.$series;
+    var $task               = Flows.$task;
 
 
     //-------------------------------------------------------------------------------
