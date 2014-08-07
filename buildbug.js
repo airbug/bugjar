@@ -45,12 +45,17 @@ var dependencies        = {
 //-------------------------------------------------------------------------------
 
 buildProperties({
+    name: name,
+    version: version
+});
+
+buildProperties({
     node: {
         packageJson: {
-            name: name,
-            version: version,
+            name: "{{name}}",
+            version: "{{version}}",
             description: "bugjar is a JavaScript library that provides a jarring system for reusable JS libraries (think Java jars)",
-            main: "./scripts/bugjar-node-module.js",
+            main: "./scripts/bugjar-node.js",
             bin: "bin/bugjar",
             dependencies: dependencies,
             author: "Brian Neisler <brian@airbug.com>",
@@ -68,13 +73,17 @@ buildProperties({
                 }
             ]
         },
+        binPaths: [
+            "./projects/bugjar-node/bin"
+        ],
         sourcePaths: [
+            "../bugaws/libraries/bugaws/js/src",
+            "../bugcli/libraries/bugcli/js/src",
             "../bugcore/libraries/bugcore/js/src",
-            "../bugfs/projects/bugfs/js/src",
-            "../bugjs/projects/aws/js/src",
-            "../bugjs/projects/bugcli/js/src",
-            "../bugmeta/projects/bugmeta/js/src",
-            "./projects/bugjar/js/src"
+            "../bugfs/libraries/bugfs/js/src",
+            "../bugmeta/libraries/bugmeta/js/src",
+            "./libraries/bugjar/js/src",
+            "./projects/bugjar-node/js/src"
         ],
         scriptPaths: [
             "./projects/bugjar-node/js/scripts"
@@ -82,29 +91,29 @@ buildProperties({
         readmePath: "./README.md",
         unitTest: {
             packageJson: {
-                name: name + "-test",
-                version: version,
-                main: "./scripts/bugjar-node-module.js",
+                name: "{{name}}-test",
+                version: "{{version}}",
+                main: "./scripts/bugjar-node.js",
                 dependencies: dependencies,
                 scripts: {
-                    test: "./scripts/bugunit-run.js"
+                    test: "node ./test/scripts/bugunit-run.js"
                 }
             },
             sourcePaths: [
-                "../buganno/projects/buganno/js/src",
-                "../bugunit/projects/bugdouble/js/src",
-                "../bugunit/projects/bugunit/js/src"
+                "../buganno/libraries/buganno/js/src",
+                "../bugdouble/libraries/bugdouble/js/src",
+                "../bugunit/libraries/bugunit/js/src"
             ],
             scriptPaths: [
-                "../buganno/projects/buganno/js/scripts",
-                "../bugunit/projects/bugunit/js/scripts"
+                "../buganno/libraries/buganno/js/scripts",
+                "../bugunit/libraries/bugunit/js/scripts"
             ],
             testPaths: [
+                "../bugcli/libraries/bugcli/js/test",
                 "../bugcore/libraries/bugcore/js/test",
-                "../bugfs/projects/bugfs/js/test",
-                "../bugjs/projects/bugcli/js/test",
-                "../bugmeta/projects/bugmeta/js/test",
-                "./projects/bugjar/js/test"
+                "../bugfs/libraries/bugfs/js/test",
+                "../bugmeta/libraries/bugmeta/js/test",
+                "./libraries/bugjar/js/test"
             ]
         }
     }
@@ -137,14 +146,15 @@ buildTarget("local").buildFlow(
         targetTask('createNodePackage', {
             properties: {
                 packageJson: buildProject.getProperty("node.packageJson"),
-                readmePath: buildProject.getProperty("node.readmePath"),
-                sourcePaths: buildProject.getProperty("node.sourcePaths").concat(
-                    buildProject.getProperty("node.unitTest.sourcePaths")
-                ),
-                scriptPaths: buildProject.getProperty("node.scriptPaths").concat(
-                    buildProject.getProperty("node.unitTest.scriptPaths")
-                ),
-                testPaths: buildProject.getProperty("node.unitTest.testPaths")
+                packagePaths: {
+                    "./": [buildProject.getProperty("node.readmePath")],
+                    "./bin": buildProject.getProperty("node.binPaths"),
+                    "./lib": buildProject.getProperty("node.sourcePaths"),
+                    "./scripts": buildProject.getProperty("node.scriptPaths"),
+                    "./test": buildProject.getProperty("node.unitTest.testPaths"),
+                    "./test/lib": buildProject.getProperty("node.unitTest.sourcePaths"),
+                    "./test/scripts": buildProject.getProperty("node.unitTest.scriptPaths")
+                }
             }
         }),
         targetTask('generateBugPackRegistry', {
@@ -211,14 +221,15 @@ buildTarget("prod").buildFlow(
                 targetTask("createNodePackage", {
                     properties: {
                         packageJson: buildProject.getProperty("node.packageJson"),
-                        sourcePaths: buildProject.getProperty("node.sourcePaths").concat(
-                            buildProject.getProperty("node.unitTest.sourcePaths")
-                        ),
-                        scriptPaths: buildProject.getProperty("node.scriptPaths").concat(
-                            buildProject.getProperty("node.unitTest.scriptPaths")
-                        ),
-                        testPaths: buildProject.getProperty("node.unitTest.testPaths"),
-                        binPaths: buildProject.getProperty("node.binPaths")
+                        packagePaths: {
+                            "./": [buildProject.getProperty("node.readmePath")],
+                            "./bin": buildProject.getProperty("node.binPaths"),
+                            "./lib": buildProject.getProperty("node.sourcePaths"),
+                            "./scripts": buildProject.getProperty("node.scriptPaths"),
+                            "./test": buildProject.getProperty("node.unitTest.testPaths"),
+                            "./test/lib": buildProject.getProperty("node.unitTest.sourcePaths"),
+                            "./test/scripts": buildProject.getProperty("node.unitTest.scriptPaths")
+                        }
                     }
                 }),
                 targetTask("generateBugPackRegistry", {
@@ -257,11 +268,13 @@ buildTarget("prod").buildFlow(
             series([
                 targetTask("createNodePackage", {
                     properties: {
-                        binPaths: buildProject.getProperty("node.binPaths"),
                         packageJson: buildProject.getProperty("node.packageJson"),
-                        readmePath: buildProject.getProperty("node.readmePath"),
-                        sourcePaths: buildProject.getProperty("node.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("node.scriptPaths")
+                        packagePaths: {
+                            "./": [buildProject.getProperty("node.readmePath")],
+                            "./bin": buildProject.getProperty("node.binPaths"),
+                            "./lib": buildProject.getProperty("node.sourcePaths"),
+                            "./scripts": buildProject.getProperty("node.scriptPaths")
+                        }
                     }
                 }),
                 targetTask("generateBugPackRegistry", {
